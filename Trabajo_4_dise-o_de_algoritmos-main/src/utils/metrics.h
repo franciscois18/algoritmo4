@@ -35,4 +35,28 @@ double recall_score(Matrix* y_true, Matrix* y_pred);
  */
 double f1_score(Matrix* y_true, Matrix* y_pred);
 
+/**
+ * @brief Calcula el error cuadrático medio (MSE)
+ * @param y_true Vector de valores reales
+ * @param y_pred Vector de valores predichos
+ * @return double Valor de MSE, o -1 si hay error
+ */
+double mean_squared_error(Matrix* y_true, Matrix* y_pred);
+
+/**
+ * @brief Calcula el error absoluto medio (MAE)
+ * @param y_true Vector de valores reales
+ * @param y_pred Vector de valores predichos
+ * @return double Valor de MAE, o -1 si hay error
+ */
+double mean_absolute_error(Matrix* y_true, Matrix* y_pred);
+
+/**
+ * @brief Calcula el coeficiente de determinación R²
+ * @param y_true Vector de valores reales
+ * @param y_pred Vector de valores predichos
+ * @return double Valor de R², o -1 si hay error
+ */
+double r2_score(Matrix* y_true, Matrix* y_pred);
+
 #endif // METRICS_H

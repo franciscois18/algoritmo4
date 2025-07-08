@@ -301,19 +301,33 @@ LinearRegression* linear_regression_load(const char* filename) {
         fclose(f);
         return NULL;
     }
+    
+    // Inicializar punteros a NULL
+    model->weights = NULL;
 
-    fread(&model->bias, sizeof(double), 1, f);
-    fread(&model->learning_rate, sizeof(double), 1, f);
-    fread(&model->max_iterations, sizeof(int), 1, f);
-    fread(&model->tolerance, sizeof(double), 1, f);
+    if (fread(&model->bias, sizeof(double), 1, f) != 1) { free(model); fclose(f); return NULL; }
+    if (fread(&model->learning_rate, sizeof(double), 1, f) != 1) { free(model); fclose(f); return NULL; }
+    if (fread(&model->max_iterations, sizeof(int), 1, f) != 1) { free(model); fclose(f); return NULL; }
+    if (fread(&model->tolerance, sizeof(double), 1, f) != 1) { free(model); fclose(f); return NULL; }
 
     int rows, cols;
-    fread(&rows, sizeof(int), 1, f);
-    fread(&cols, sizeof(int), 1, f);
+    if (fread(&rows, sizeof(int), 1, f) != 1) { free(model); fclose(f); return NULL; }
+    if (fread(&cols, sizeof(int), 1, f) != 1) { free(model); fclose(f); return NULL; }
+    
     model->weights = matrix_create(rows, cols);
+    if (!model->weights) {
+        free(model);
+        fclose(f);
+        return NULL;
+    }
 
     for (int i = 0; i < rows; i++) {
-        fread(model->weights->data[i], sizeof(double), cols, f);
+        if (fread(model->weights->data[i], sizeof(double), cols, f) != (size_t)cols) {
+            matrix_free(model->weights);
+            free(model);
+            fclose(f);
+            return NULL;
+        }
     }
 
     fclose(f);

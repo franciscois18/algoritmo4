@@ -55,3 +55,49 @@ double f1_score(Matrix* y_true, Matrix* y_pred) {
     if (precision + recall == 0) return 0.0;
     return 2 * (precision * recall) / (precision + recall);
 }
+
+double mean_squared_error(Matrix* y_true, Matrix* y_pred) {
+    if (!y_true || !y_pred || y_true->rows != y_pred->rows) return -1;
+
+    double mse = 0.0;
+    for (int i = 0; i < y_true->rows; i++) {
+        double diff = y_pred->data[i][0] - y_true->data[i][0];
+        mse += diff * diff;
+    }
+    return mse / y_true->rows;
+}
+
+double mean_absolute_error(Matrix* y_true, Matrix* y_pred) {
+    if (!y_true || !y_pred || y_true->rows != y_pred->rows) return -1;
+
+    double mae = 0.0;
+    for (int i = 0; i < y_true->rows; i++) {
+        mae += fabs(y_pred->data[i][0] - y_true->data[i][0]);
+    }
+    return mae / y_true->rows;
+}
+
+double r2_score(Matrix* y_true, Matrix* y_pred) {
+    if (!y_true || !y_pred || y_true->rows != y_pred->rows) return -1;
+
+    double ss_res = 0.0;
+    double ss_tot = 0.0;
+    double mean_y = 0.0;
+
+    for (int i = 0; i < y_true->rows; i++) {
+        mean_y += y_true->data[i][0];
+    }
+    mean_y /= y_true->rows;
+
+    for (int i = 0; i < y_true->rows; i++) {
+        double diff = y_pred->data[i][0] - y_true->data[i][0];
+        ss_res += diff * diff;
+
+        double tot = y_true->data[i][0] - mean_y;
+        ss_tot += tot * tot;
+    }
+
+    if (ss_tot == 0.0) return 1.0;
+
+    return 1.0 - (ss_res / ss_tot);
+}

@@ -44,18 +44,24 @@ int main() {
 
     normalizar(X);
 
-    int k = 3, max_iter = 100;
+    int k = 3, max_iter = 100, n_init = 10;
     double tol = 1e-4;
-    KMeans* model = kmeans_create(k);
-    if (!kmeans_fit(model, X, max_iter, tol)) {
+
+    printf("Entrenando con %d reinicios aleatorios...\n", n_init);
+    KMeans* model = kmeans_fit_best(X, k, max_iter, tol, n_init);
+    if (!model) {
         printf("❌ Error al entrenar K-Means\n");
-        matrix_free(X); kmeans_free(model);
+        matrix_free(X);
         return 1;
     }
 
     Matrix* clusters = kmeans_predict(model, X);
     double inertia = kmeans_inertia(model, X);
-    printf("Inercia final: %.4f\n", inertia);
+    double score = kmeans_silhouette_score(X, clusters, k);
+
+    printf("✅ Entrenamiento exitoso\n");
+    printf("Inercia final (mejor): %.4f\n", inertia);
+    printf("Índice de silueta: %.4f\n", score);
 
     // Guardar el modelo
     const char* filename = "modelo_kmeans.dat";
@@ -79,7 +85,7 @@ int main() {
     double inertia_loaded = kmeans_inertia(loaded, X);
     printf("Inercia (modelo cargado): %.4f\n", inertia_loaded);
 
-    // Comparación
+    // Comparación entre predicciones
     int coincidencias = 0;
     for (int i = 0; i < X->rows; i++) {
         if ((int)clusters->data[i][0] == (int)clusters_loaded->data[i][0]) {
@@ -97,7 +103,6 @@ int main() {
         printf("Cluster %d: %d muestras\n", i, conteo[i]);
     }
 
-    // Validación simple de la distribución
     int valido = 1;
     for (int i = 0; i < k; i++) {
         if (conteo[i] < 5 || conteo[i] > 15) {

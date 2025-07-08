@@ -91,43 +91,40 @@ cleanup_knn:
 void aplicar_kmeans(CSVData* csv_data) {
     printf("\n=== K-Means ===\n");
     
-    // Crear una copia de los datos para normalizar
-    // Como no hay matrix_copy, creamos una nueva matriz y copiamos los datos manualmente
     Matrix* X = matrix_create(csv_data->data->rows, csv_data->data->cols);
     if (!X) {
         printf("Error al crear matriz para K-Means\n");
-        goto cleanup_kmeans;
+        return; // Salida temprana si falla la creación de X
     }
     
-    // Copiar los datos manualmente
     for (int i = 0; i < csv_data->data->rows; i++) {
         for (int j = 0; j < csv_data->data->cols; j++) {
             X->data[i][j] = csv_data->data->data[i][j];
         }
     }
     
-    // Normalizar los datos (restar la media y dividir por la desviación estándar)
-    // Esto es importante para K-Means ya que usa distancias euclidianas
+    // Inicializar punteros a NULL
+    double* medias = NULL;
+    double* desv_std = NULL;
+    KMeans* kmeans = NULL;
     
-    // Calcular media y desviación estándar por columna
-    double* medias = (double*)malloc(X->cols * sizeof(double));
-    double* desv_std = (double*)malloc(X->cols * sizeof(double));
+    medias = (double*)malloc(X->cols * sizeof(double));
+    desv_std = (double*)malloc(X->cols * sizeof(double));
     
     if (!medias || !desv_std) {
         printf("Error de memoria al normalizar datos\n");
         matrix_free(X);
-        free(medias);
-        free(desv_std);
+        free(medias); // free(NULL) es seguro
+        free(desv_std); // free(NULL) es seguro
         return;
     }
     
-    // Inicializar a cero
+    // ... (resto del código de normalización sin cambios) ...
     for (int j = 0; j < X->cols; j++) {
         medias[j] = 0.0;
         desv_std[j] = 0.0;
     }
     
-    // Calcular medias
     for (int i = 0; i < X->rows; i++) {
         for (int j = 0; j < X->cols; j++) {
             medias[j] += X->data[i][j];
@@ -138,7 +135,6 @@ void aplicar_kmeans(CSVData* csv_data) {
         medias[j] /= X->rows;
     }
     
-    // Calcular desviaciones estándar
     for (int i = 0; i < X->rows; i++) {
         for (int j = 0; j < X->cols; j++) {
             double diff = X->data[i][j] - medias[j];
@@ -148,50 +144,43 @@ void aplicar_kmeans(CSVData* csv_data) {
     
     for (int j = 0; j < X->cols; j++) {
         desv_std[j] = sqrt(desv_std[j] / X->rows);
-        // Evitar división por cero
         if (desv_std[j] < 1e-10) {
             desv_std[j] = 1.0;
         }
     }
     
-    // Aplicar normalización
     for (int i = 0; i < X->rows; i++) {
         for (int j = 0; j < X->cols; j++) {
             X->data[i][j] = (X->data[i][j] - medias[j]) / desv_std[j];
         }
     }
     
-    // Crear y entrenar el modelo K-Means
     int n_clusters = 3;
     int max_iter = 100;
     double tol = 1e-4;
     
-    KMeans* kmeans = kmeans_create(n_clusters);
+    kmeans = kmeans_create(n_clusters);
     if (!kmeans) {
         printf("Error al crear el modelo K-Means\n");
         goto cleanup_kmeans;
     }
     
-    // Entrenar el modelo
     if (!kmeans_fit(kmeans, X, max_iter, tol)) {
         printf("Error al entrenar el modelo K-Means\n");
         goto cleanup_kmeans;
     }
     
-    // Realizar predicciones
     Matrix* clusters = kmeans_predict(kmeans, X);
     if (!clusters) {
         printf("Error al realizar predicciones con K-Means\n");
         goto cleanup_kmeans;
     }
     
-    // Calcular inercia
     double inercia = kmeans_inertia(kmeans, X);
     
     printf("Número de clusters: %d\n", n_clusters);
     printf("Inercia: %.4f\n", inercia);
     
-    // Mostrar distribución de clusters
     int* conteo_clusters = (int*)calloc(n_clusters, sizeof(int));
     if (conteo_clusters) {
         for (int i = 0; i < clusters->rows; i++) {
@@ -209,10 +198,10 @@ void aplicar_kmeans(CSVData* csv_data) {
         free(conteo_clusters);
     }
     
-    // Liberar memoria
     matrix_free(clusters);
     
 cleanup_kmeans:
+    // Todas estas llamadas son seguras incluso si los punteros son NULL
     kmeans_free(kmeans);
     matrix_free(X);
     free(medias);

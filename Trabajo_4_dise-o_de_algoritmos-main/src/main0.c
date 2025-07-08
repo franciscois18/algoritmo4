@@ -29,10 +29,17 @@ void evaluar(KNNClassifier* knn, Matrix* X_test, Matrix* y_test, const char* men
     matrix_free(y_pred);
 }
 
+DistanceMetric obtener_metrica(const char* nombre) {
+    if (strcmp(nombre, "euclidean") == 0) return EUCLIDEAN;
+    if (strcmp(nombre, "manhattan") == 0) return MANHATTAN;
+    if (strcmp(nombre, "cosine") == 0) return COSINE;
+
+    fprintf(stderr, "Métrica desconocida: %s. Usando EUCLIDEAN por defecto.\n", nombre);
+    return EUCLIDEAN;
+}
+
 void probar_con_distancia(const char* nombre_distancia, Matrix* X_train, Matrix* y_train, Matrix* X_test, Matrix* y_test, int k, int use_kdtree) {
     printf("\n=== Distancia: %s | k-d tree: %s ===\n", nombre_distancia, use_kdtree ? "ON" : "OFF");
-
-    knn_set_distance_function(nombre_distancia);
 
     KNNClassifier* knn = knn_create(k);
     if (!knn) {
@@ -41,12 +48,11 @@ void probar_con_distancia(const char* nombre_distancia, Matrix* X_train, Matrix*
     }
 
     knn_set_use_kdtree(knn, use_kdtree);
+    knn_set_distance_metric(knn, obtener_metrica(nombre_distancia));
     knn_fit(knn, X_train, y_train);
 
-    // Evaluar antes de guardar
     evaluar(knn, X_test, y_test, "Original");
 
-    // Guardar modelo
     const char* modelo_path = "knn_model_temp.dat";
     if (knn_save(knn, modelo_path)) {
         printf("Modelo guardado en '%s'\n", modelo_path);
@@ -54,7 +60,6 @@ void probar_con_distancia(const char* nombre_distancia, Matrix* X_train, Matrix*
         fprintf(stderr, "Error al guardar el modelo.\n");
     }
 
-    // Liberar y volver a cargar
     knn_free(knn);
     knn = knn_load(modelo_path);
     if (!knn) {
@@ -62,9 +67,7 @@ void probar_con_distancia(const char* nombre_distancia, Matrix* X_train, Matrix*
         return;
     }
 
-    // Evaluar después de recargar
     evaluar(knn, X_test, y_test, "Cargado");
-
     knn_free(knn);
 }
 
@@ -85,12 +88,10 @@ int main() {
     }
 
     int k = 3;
-
-    // Probar con cada distancia y modo (k-d tree activado o no)
     const char* distancias[] = {"euclidean", "manhattan", "cosine"};
     for (int i = 0; i < 3; i++) {
-        probar_con_distancia(distancias[i], X_train, y_train, X_test, y_test, k, 1); // k-d tree ON
-        probar_con_distancia(distancias[i], X_train, y_train, X_test, y_test, k, 0); // k-d tree OFF
+        probar_con_distancia(distancias[i], X_train, y_train, X_test, y_test, k, 1);
+        probar_con_distancia(distancias[i], X_train, y_train, X_test, y_test, k, 0);
     }
 
     matrix_free(X_train);

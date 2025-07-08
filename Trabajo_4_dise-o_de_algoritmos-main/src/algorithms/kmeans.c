@@ -201,9 +201,9 @@ KMeans* kmeans_load(const char* filename) {
     if (!f) return NULL;
 
     int k, rows, cols;
-    fread(&k, sizeof(int), 1, f);
-    fread(&rows, sizeof(int), 1, f);
-    fread(&cols, sizeof(int), 1, f);
+    if (fread(&k, sizeof(int), 1, f) != 1) { fclose(f); return NULL; }
+    if (fread(&rows, sizeof(int), 1, f) != 1) { fclose(f); return NULL; }
+    if (fread(&cols, sizeof(int), 1, f) != 1) { fclose(f); return NULL; }
 
     KMeans* model = kmeans_create(k);
     if (!model) {
@@ -219,12 +219,113 @@ KMeans* kmeans_load(const char* filename) {
     }
 
     for (int i = 0; i < rows; i++) {
-        fread(model->centroids->data[i], sizeof(double), cols, f);
+        if (fread(model->centroids->data[i], sizeof(double), cols, f) != (size_t)cols) {
+            kmeans_free(model);
+            fclose(f);
+            return NULL;
+        }
     }
 
     fclose(f);
     return model;
 }
+
+static double euclidean_distance_row(const double* a, const double* b, int length) {
+    double sum = 0.0;
+    for (int i = 0; i < length; i++) {
+        double diff = a[i] - b[i];
+        sum += diff * diff;
+    }
+    return sqrt(sum);
+}
+
+double kmeans_silhouette_score(Matrix* X, Matrix* labels, int k) {
+    if (!X || !labels || X->rows != labels->rows) return -1;
+
+    int n = X->rows;
+    int d = X->cols;
+    double* silhouettes = malloc(n * sizeof(double));
+    if (!silhouettes) return -1;
+
+    for (int i = 0; i < n; i++) {
+        int label_i = (int)labels->data[i][0];
+
+        double a = 0.0, b = DBL_MAX;
+        int same_cluster_count = 0;
+
+        for (int j = 0; j < n; j++) {
+            if (i == j) continue;
+
+            double dist = euclidean_distance_row(X->data[i], X->data[j], d);
+            int label_j = (int)labels->data[j][0];
+
+            if (label_j == label_i) {
+                a += dist;
+                same_cluster_count++;
+            }
+        }
+
+        a = (same_cluster_count > 0) ? a / same_cluster_count : 0.0;
+
+        for (int cluster = 0; cluster < k; cluster++) {
+            if (cluster == label_i) continue;
+
+            double avg_dist = 0.0;
+            int count = 0;
+
+            for (int j = 0; j < n; j++) {
+                if ((int)labels->data[j][0] == cluster) {
+                    avg_dist += euclidean_distance_row(X->data[i], X->data[j], d);
+                    count++;
+                }
+            }
+
+            if (count > 0) {
+                avg_dist /= count;
+                if (avg_dist < b) b = avg_dist;
+            }
+        }
+
+        double s = 0.0;
+        if (a < b) s = 1.0 - a / b;
+        else if (a > b) s = b / a - 1.0;
+        silhouettes[i] = s;
+    }
+
+    double mean = 0.0;
+    for (int i = 0; i < n; i++) mean += silhouettes[i];
+    free(silhouettes);
+    return mean / n;
+}
+
+KMeans* kmeans_fit_best(Matrix* X, int k, int max_iter, double tol, int n_init) {
+    if (!X || k <= 0 || n_init <= 0) return NULL;
+
+    KMeans* best_model = NULL;
+    double best_inertia = DBL_MAX;
+
+    for (int i = 0; i < n_init; i++) {
+        KMeans* model = kmeans_create(k);
+        if (!model) continue;
+
+        if (!kmeans_fit(model, X, max_iter, tol)) {
+            kmeans_free(model);
+            continue;
+        }
+
+        double inertia = kmeans_inertia(model, X);
+        if (inertia < best_inertia) {
+            if (best_model) kmeans_free(best_model);
+            best_model = model;
+            best_inertia = inertia;
+        } else {
+            kmeans_free(model);
+        }
+    }
+
+    return best_model;
+}
+
 
 void kmeans_free(KMeans* model) {
     if (!model) return;

@@ -65,6 +65,25 @@ int kmeans_save(KMeans* model, const char* filename);
  */
 KMeans* kmeans_load(const char* filename);
 
+/**
+ * @brief Calcula el índice de silueta para evaluar el clustering
+ * @param X Matriz de datos (n x d)
+ * @param labels Vector de clusters asignados (n x 1)
+ * @param k Número de clusters
+ * @return double Índice de silueta promedio (entre -1 y 1)
+ */
+double kmeans_silhouette_score(Matrix* X, Matrix* labels, int k);
+
+/**
+ * @brief Ejecuta múltiples inicializaciones aleatorias de K-Means y devuelve el mejor modelo
+ * @param X Matriz de datos
+ * @param k Número de clusters
+ * @param max_iter Iteraciones máximas por ejecución
+ * @param tol Tolerancia de convergencia
+ * @param n_init Número de reinicios aleatorios
+ * @return KMeans* Modelo con menor inercia
+ */
+KMeans* kmeans_fit_best(Matrix* X, int k, int max_iter, double tol, int n_init);
 
 void analyze_sensitivity(int max_iter, double tol, Matrix* X, int* k_values, int num_k_values);
 

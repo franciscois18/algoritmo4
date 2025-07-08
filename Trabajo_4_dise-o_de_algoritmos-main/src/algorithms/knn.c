@@ -255,27 +255,49 @@ KNNClassifier* knn_load(const char* filename) {
     if (!f) return NULL;
 
     int k, use_kdtree, metric_int, rows, cols;
-    fread(&k, sizeof(int), 1, f);
-    fread(&use_kdtree, sizeof(int), 1, f);
-    fread(&metric_int, sizeof(int), 1, f);
-    fread(&rows, sizeof(int), 1, f);
-    fread(&cols, sizeof(int), 1, f);
+    
+    // Verificar cada lectura
+    if (fread(&k, sizeof(int), 1, f) != 1) { fclose(f); return NULL; }
+    if (fread(&use_kdtree, sizeof(int), 1, f) != 1) { fclose(f); return NULL; }
+    if (fread(&metric_int, sizeof(int), 1, f) != 1) { fclose(f); return NULL; }
+    if (fread(&rows, sizeof(int), 1, f) != 1) { fclose(f); return NULL; }
+    if (fread(&cols, sizeof(int), 1, f) != 1) { fclose(f); return NULL; }
 
     Matrix* X = matrix_create(rows, cols);
     Matrix* y = matrix_create(rows, 1);
     if (!X || !y) {
         fclose(f);
+        if (X) matrix_free(X);
+        if (y) matrix_free(y);
         return NULL;
     }
 
-    for (int i = 0; i < rows; i++)
-        fread(X->data[i], sizeof(double), cols, f);
-    for (int i = 0; i < rows; i++)
-        fread(y->data[i], sizeof(double), 1, f);
+    for (int i = 0; i < rows; i++) {
+        if (fread(X->data[i], sizeof(double), cols, f) != (size_t)cols) {
+            fclose(f);
+            matrix_free(X);
+            matrix_free(y);
+            return NULL;
+        }
+    }
+    for (int i = 0; i < rows; i++) {
+        if (fread(y->data[i], sizeof(double), 1, f) != 1) {
+            fclose(f);
+            matrix_free(X);
+            matrix_free(y);
+            return NULL;
+        }
+    }
 
     fclose(f);
 
     KNNClassifier* knn = knn_create(k);
+    if (!knn) {
+        matrix_free(X);
+        matrix_free(y);
+        return NULL;
+    }
+
     knn->X_train = X;
     knn->y_train = y;
     knn->use_kdtree = use_kdtree;

@@ -8,7 +8,7 @@ VENV_DIR = venv
 
 # Archivos fuente
 CORE_SRC = $(SRC_DIR)/core/matrix.c
-UTILS_SRC = $(SRC_DIR)/utils/csv_reader.c
+UTILS_SRC = $(SRC_DIR)/utils/csv_reader.c $(SRC_DIR)/utils/metrics.c
 ALGO_SRC = $(SRC_DIR)/algorithms/knn.c $(SRC_DIR)/algorithms/kmeans.c $(SRC_DIR)/algorithms/linear_regression.c
 MAIN_SRC = $(SRC_DIR)/main.c
 IRIS_SRC = $(SRC_DIR)/main-iris.c
@@ -24,6 +24,13 @@ IRIS_OBJ = $(IRIS_SRC:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 TARGET = ml_demo
 IRIS_TARGET = ml_iris
 PY_EXAMPLE = ejemplo_python.py
+
+# Ejecutables de pruebas y CLI
+KNN_TEST = ml_knn_test
+KMEANS_TEST = ml_kmeans_test
+REG_TEST = ml_reg_test
+METRICS_TEST = ml_metrics_test
+CLI = mlcli
 
 # Regla principal
 all: $(BUILD_DIR) $(TARGET) $(IRIS_TARGET)
@@ -66,9 +73,37 @@ run-py: install-py-reqs
 run-iris: $(IRIS_TARGET)
 	./$(IRIS_TARGET)
 
+# Pruebas individuales y CLI
+.PHONY: tests
+tests: $(KNN_TEST) $(KMEANS_TEST) $(REG_TEST) $(METRICS_TEST)
+
+$(KNN_TEST): $(CORE_SRC) $(UTILS_SRC) $(ALGO_SRC) src/main0.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(KMEANS_TEST): $(CORE_SRC) $(UTILS_SRC) $(ALGO_SRC) src/main2.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(REG_TEST): $(CORE_SRC) $(UTILS_SRC) $(ALGO_SRC) src/main1.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(METRICS_TEST): $(CORE_SRC) $(UTILS_SRC) $(ALGO_SRC) src/main3.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+$(CLI): $(CORE_SRC) $(UTILS_SRC) $(ALGO_SRC) src/main_cli.c
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+.PHONY: run-cli
+run-cli: $(CLI)
+	./$(CLI)
+
+.PHONY: clean-tests
+clean-tests:
+	rm -f $(KNN_TEST) $(KMEANS_TEST) $(REG_TEST) $(METRICS_TEST) $(CLI)
+
+
 # Limpiar
 clean:
-	rm -rf $(BUILD_DIR) $(TARGET) $(IRIS_TARGET)
+	rm -rf $(BUILD_DIR) $(TARGET) $(IRIS_TARGET) $(KNN_TEST) $(KMEANS_TEST) $(REG_TEST) $(METRICS_TEST) $(CLI)
 
 # Limpiar todo (incluyendo entorno virtual y archivos generados por Python)
 clean-all: clean

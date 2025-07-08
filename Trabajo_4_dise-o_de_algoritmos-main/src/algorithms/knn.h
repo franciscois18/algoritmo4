@@ -53,12 +53,6 @@ Matrix* knn_predict(KNNClassifier* knn, Matrix* X);
 void knn_free(KNNClassifier* knn);
 
 /**
- * @brief Establece la función de distancia a utilizar en k-NN (modo texto)
- * @param name Nombre de la función de distancia: "euclidean", "manhattan" o "cosine"
- */
-void knn_set_distance_function(const char* name);
-
-/**
  * @brief Establece la métrica de distancia del clasificador directamente
  * @param knn Clasificador
  * @param metric Tipo de métrica a usar (EUCLIDEAN, MANHATTAN, COSINE)
